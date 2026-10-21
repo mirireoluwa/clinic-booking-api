@@ -2,8 +2,8 @@
 
 An API that lets patients book appointment slots, plus a small web page that uses it. Built for the Koya Cohort 4 assessment, Task 1. It covers all five levels.
 
-- **API base URL:** add your deployed URL here
-- **Web page:** the same URL, at `/`
+- **API base URL:** https://clinic-booking-api-46kz.onrender.com
+- **Web page:** https://clinic-booking-api-46kz.onrender.com/
 
 Stack: Node 22, Express, Postgres. The web page is one HTML file with no build step.
 
