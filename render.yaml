@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: clinic-booking-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: WEB_KEY
+        sync: false
