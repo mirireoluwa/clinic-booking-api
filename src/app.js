@@ -146,7 +146,7 @@ export function createApp({ pool, apiKey, webKey }) {
       const allowed =
         (req.method === "GET" && req.path === "/slots") ||
         (req.method === "POST" && req.path === "/bookings") ||
-        (req.method === "GET" && /^\/bookings\/[^/]+$/.test(req.path));
+        (["GET", "DELETE"].includes(req.method) && /^\/bookings\/[^/]+$/.test(req.path));
       if (allowed) return next();
       return res.status(403).json({ error: "this key cannot do that" });
     }

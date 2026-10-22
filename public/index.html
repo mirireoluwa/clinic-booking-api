@@ -257,7 +257,9 @@
     .confirmation .eyebrow { grid-column: 1 / -1; color: var(--on-dark); margin: 0 0 -14px; }
     .confirmation h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
     .confirmation .intro { color: rgb(255 255 255 / 0.7); margin-top: 14px; max-width: 420px; }
-    .confirmation .actions-row { margin-top: 28px; }
+    .confirmation .actions-row { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn.secondary-dark { background: transparent; color: var(--paper); border-color: rgb(255 255 255 / 0.35); }
+    .btn.secondary-dark:hover:not(:disabled) { background: rgb(255 255 255 / 0.1); border-color: var(--paper); }
     .confirmation dl { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; align-self: center; }
     .confirmation dt, .confirmation dd { padding: 14px 0; border-top: 1px solid rgb(255 255 255 / 0.14); }
     .confirmation dt { color: var(--on-dark); font-size: 14px; padding-right: 32px; }
@@ -727,11 +729,41 @@
             el("h2", {}, confirmed ? "You're booked" : "This booking was cancelled"),
             el("p", { class: "intro" }, "Keep your booking ID in case you need to ask about this appointment."),
             el("div", { class: "actions-row" },
-              el("button", { class: "btn light", type: "button", onclick: dismissConfirmation }, "Book another time"))),
+              el("button", { class: "btn light", type: "button", onclick: dismissConfirmation }, "Book another time"),
+              ...(confirmed ? [cancelButton(booking, slot)] : []))),
           el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]))),
       );
       box.focus();
       box.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Two clicks: the first asks "are you sure", the second cancels. No browser popups.
+    function cancelButton(booking, slot) {
+      const btn = el("button", { class: "btn secondary-dark", type: "button" }, "Cancel booking");
+      let armed = false, timer;
+      btn.addEventListener("click", async () => {
+        if (!armed) {
+          armed = true;
+          btn.textContent = "Click again to confirm";
+          timer = setTimeout(() => { armed = false; btn.textContent = "Cancel booking"; }, 5000);
+          return;
+        }
+        clearTimeout(timer);
+        btn.disabled = true;
+        btn.textContent = "Cancelling...";
+        const res = await api("DELETE", `/bookings/${booking.id}`);
+        if (res.status === 200 || res.status === 409) {
+          const fresh = res.status === 200 ? res.data : { ...booking, status: "cancelled" };
+          showConfirmation(fresh, slot);
+          await loadSlots();
+        } else {
+          btn.disabled = false;
+          armed = false;
+          btn.textContent = "Cancel booking";
+          showNotice("Sorry, we could not cancel that booking. Please try again.");
+        }
+      });
+      return btn;
     }
 
     function dismissConfirmation() {

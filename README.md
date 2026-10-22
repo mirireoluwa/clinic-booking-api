@@ -73,7 +73,8 @@ The page lists open slots grouped by day, lets you filter by doctor, and books a
 - If someone else takes your slot first, you get a clear message and a refreshed list.
 - If you hit the rate limit, the button counts down the `Retry-After` seconds.
 - The confirmation survives a reload, because the booking id is kept in the URL and loaded with `GET /bookings/{id}`.
-- The page uses a second key, `WEB_KEY`, which can list slots, book and read a booking, but cannot reset or cancel. It has to be visible to the browser, so I limited what it can do. The full `API_KEY` is never sent to the page.
+- The confirmation has a Cancel booking button (two clicks, to avoid accidents). It calls `DELETE /bookings/{id}`, and the slot is free again straight away.
+- The page uses a second key, `WEB_KEY`, which can list slots, book, read a booking and cancel one by its id, but cannot reset or list a person's bookings. It has to be visible to the browser, so I limited what it can do, and a booking id is a random UUID that only the person who booked sees. The full `API_KEY` is never sent to the page.
 
 ## Tests
 
