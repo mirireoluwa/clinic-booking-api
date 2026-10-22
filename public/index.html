@@ -3,147 +3,442 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="Choose a doctor and a time, book your appointment, and see your confirmation straight away." />
   <title>Book an appointment</title>
+  <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
   <style>
+    /* Instrument Sans, served from this site so the page makes no outside requests. */
+    @font-face {
+      font-family: "Instrument Sans";
+      font-style: normal;
+      font-weight: 400 700;
+      font-display: swap;
+      src: url("/fonts/instrument-sans-latin-wght-normal.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Instrument Sans";
+      font-style: italic;
+      font-weight: 400 700;
+      font-display: swap;
+      src: url("/fonts/instrument-sans-latin-wght-italic.woff2") format("woff2");
+    }
+
     :root {
-      --bg: #f6f7f4;
-      --surface: #ffffff;
-      --text: #1b2421;
-      --muted: #5d6b66;
-      --line: #dde3df;
-      --brand: #1f6f5c;
-      --brand-strong: #17584a;
-      --brand-soft: #e3f1ec;
-      --danger: #a63a2b;
-      --danger-soft: #fbeae7;
-      --focus: #1f6f5c;
-      --radius: 10px;
+      --ink: #0a0a0a;
+      --paper: #ffffff;
+      --mist: #f5f5f5;
+      --muted: #4d4d4d;
+      --soft: #6b6b6b;
+      --line: rgb(10 10 10 / 0.1);
+      --on-dark: rgb(255 255 255 / 0.6);
+      --accent-word: #e3e3e3;
+      --ok: #22a94f;
+      --danger-ink: #8f1d21;
+      --danger-bg: #fdecec;
+      --danger-line: #f1b7b9;
+
+      --r-ctl: 10px;
+      --r-btn: 12px;
+      --r-card: 20px;
+      --r-panel: 30px;
+
+      --header-h: 5.5rem;
+      --wrap: 1240px;
+      --gutter: 24px;
+      --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #121715;
-        --surface: #1a211e;
-        --text: #e8eeeb;
-        --muted: #9aa8a2;
-        --line: #2e3833;
-        --brand: #5fc3a8;
-        --brand-strong: #7fd6bd;
-        --brand-soft: #1d3a31;
-        --danger: #f0a094;
-        --danger-soft: #3a211d;
-        --focus: #5fc3a8;
-      }
-    }
+
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 8px); }
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 16px/1.5 "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
-    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-    h1 { font-size: 1.75rem; margin: 0 0 4px; }
-    h2 { font-size: 1.05rem; margin: 28px 0 10px; color: var(--muted); font-weight: 600; }
-    p { margin: 0; }
-    .lead { color: var(--muted); margin-bottom: 20px; }
-
-    :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-
-    .toolbar { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 4px; }
-    label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
-    input, select {
-      width: 100%; font: inherit; color: inherit; background: var(--surface);
-      border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-    }
-    .toolbar .field { min-width: 180px; }
-
-    button { font: inherit; cursor: pointer; border-radius: 8px; }
-    .btn {
-      border: 1px solid var(--brand); background: var(--brand); color: #fff;
-      padding: 10px 16px; font-weight: 600;
-    }
-    @media (prefers-color-scheme: dark) { .btn { color: #0c1411; } }
-    .btn:hover { background: var(--brand-strong); border-color: var(--brand-strong); }
-    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-    .btn.secondary { background: transparent; color: var(--brand-strong); }
-    .btn.secondary:hover { background: var(--brand-soft); }
-
-    .day { margin-top: 22px; }
-    .day h3 { font-size: 1rem; margin: 0 0 10px; }
-    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-    .slot {
-      text-align: left; background: var(--surface); color: var(--text);
-      border: 1px solid var(--line); padding: 12px 14px;
-    }
-    .slot:hover:not(:disabled) { border-color: var(--brand); background: var(--brand-soft); }
-    .slot:disabled { cursor: not-allowed; color: var(--muted); background: transparent; border-style: dashed; }
-    .slot .time { display: block; font-weight: 700; }
-    .slot .who { display: block; font-size: 0.88rem; color: var(--muted); }
-    .slot .tag { display: block; font-size: 0.8rem; margin-top: 4px; color: var(--muted); }
-
-    .notice {
-      border: 1px solid var(--line); background: var(--surface);
-      border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;
-    }
-    .notice.error { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
-    .confirmation { border-color: var(--brand); background: var(--brand-soft); }
-    .confirmation h2 { margin: 0 0 8px; color: var(--text); font-size: 1.2rem; }
-    .confirmation dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0 16px; }
-    .confirmation dt { color: var(--muted); }
-    .confirmation dd { margin: 0; overflow-wrap: anywhere; }
-    .badge {
-      display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.85rem;
-      font-weight: 700; background: var(--brand); color: #fff;
-    }
-    @media (prefers-color-scheme: dark) { .badge { color: #0c1411; } }
-    .badge.cancelled { background: var(--danger); }
-
-    dialog {
-      width: min(440px, calc(100vw - 24px)); border: 1px solid var(--line);
-      border-radius: 14px; padding: 22px; background: var(--surface); color: var(--text);
-    }
-    dialog::backdrop { background: rgb(0 0 0 / 0.45); }
-    dialog h2 { margin: 0 0 4px; color: var(--text); font-size: 1.25rem; }
-    dialog .summary { color: var(--muted); margin-bottom: 16px; }
-    .row { margin-bottom: 14px; }
-    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-    .form-error { margin: 0 0 12px; color: var(--danger); font-weight: 600; }
-    .empty { color: var(--muted); padding: 24px 0; }
+    h1, h2, h3, p { margin: 0; }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+    :focus-visible { outline: 3px solid #2f7bf5; outline-offset: 3px; }
     .sr-only {
       position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
       white-space: nowrap;
     }
+    .skip {
+      position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--paper); color: var(--ink);
+      padding: 10px 16px; border-radius: var(--r-btn); font-weight: 600;
+    }
+    .skip:focus { top: 12px; }
+
+    /* ---- Type ------------------------------------------------------------ */
+    .eyebrow {
+      font-size: 12.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--soft);
+    }
+    .on-dark .eyebrow, .eyebrow.on-dark { color: var(--on-dark); }
+    h1, h2, h3 { text-wrap: balance; }
+    h1 {
+      font-size: clamp(2.8rem, 8vw, 4.8rem); line-height: 1; font-weight: 600; letter-spacing: -0.03em;
+    }
+    h1 em, h2 em { font-style: italic; font-weight: 600; color: var(--accent-word); }
+    h2 {
+      font-size: clamp(2rem, 4.6vw, 3.3rem); line-height: 1.05; font-weight: 600; letter-spacing: -0.03em;
+    }
+    h3 { font-size: 1.6rem; line-height: 1.25; font-weight: 500; letter-spacing: -0.03em; }
+
+    /* ---- Buttons ----------------------------------------------------------- */
+    button { font: inherit; cursor: pointer; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      height: 44px; padding: 0 18px; border-radius: var(--r-btn); border: 1px solid var(--ink);
+      background: var(--ink); color: var(--paper); font-size: 14.5px; font-weight: 600;
+      letter-spacing: -0.005em; text-decoration: none; white-space: nowrap;
+      transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .btn:hover:not(:disabled) { background: #262626; border-color: #262626; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary { background: transparent; color: var(--ink); border-color: rgb(10 10 10 / 0.25); }
+    .btn.secondary:hover:not(:disabled) { background: rgb(10 10 10 / 0.05); border-color: var(--ink); }
+    .btn.light { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+    .btn.light:hover:not(:disabled) { background: #e9e9e9; border-color: #e9e9e9; }
+
+    .btn-hero {
+      height: 52px; padding: 0 10px 0 24px; gap: 18px; font-size: 15px;
+      background: rgb(255 255 255 / 0.1); border-color: rgb(255 255 255 / 0.28); color: var(--paper);
+    }
+    .btn-hero:hover:not(:disabled) { background: rgb(255 255 255 / 0.18); border-color: rgb(255 255 255 / 0.5); }
+    .chip-arrow {
+      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+      background: var(--paper); color: var(--ink);
+    }
+
+    /* ---- Header ------------------------------------------------------------ */
+    .site-header {
+      position: fixed; inset: 0 0 auto 0; z-index: 50; height: var(--header-h);
+      transition: background-color 0.25s var(--ease), backdrop-filter 0.25s var(--ease), box-shadow 0.25s var(--ease);
+    }
+    .site-header .wrap { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { color: var(--paper); text-decoration: none; display: flex; flex-direction: column; line-height: 1.05; }
+    .brand strong { font-size: 1.55rem; font-weight: 600; letter-spacing: -0.04em; }
+    .brand span { font-size: 11.5px; letter-spacing: 0.5px; opacity: 0.7; }
+    .nav {
+      display: flex; gap: 2px; padding: 4px; border-radius: var(--r-btn);
+      background: rgb(255 255 255 / 0.1);
+    }
+    .nav a {
+      padding: 6px 14px; border-radius: var(--r-ctl); font-size: 14.5px; font-weight: 400;
+      color: rgb(255 255 255 / 0.85); text-decoration: none;
+      transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+    }
+    .nav a:hover { color: var(--paper); }
+    .nav a[aria-current="true"] { background: var(--paper); color: var(--ink); font-weight: 500; }
+    .site-header .btn-cta {
+      height: 40px; padding: 0 16px; font-size: 14px; background: var(--paper); color: var(--ink); border-color: var(--paper);
+    }
+
+    .site-header.on-light {
+      background: rgb(255 255 255 / 0.94); backdrop-filter: saturate(1.4) blur(14px);
+      -webkit-backdrop-filter: saturate(1.4) blur(14px); box-shadow: 0 1px 0 var(--line);
+    }
+    .site-header.on-light .brand { color: var(--ink); }
+    .site-header.on-light .nav { background: rgb(10 10 10 / 0.06); }
+    .site-header.on-light .nav a { color: var(--muted); }
+    .site-header.on-light .nav a:hover { color: var(--ink); }
+    .site-header.on-light .nav a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+    .site-header.on-light .btn-cta { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+    /* ---- Hero -------------------------------------------------------------- */
+    .hero {
+      position: relative; isolation: isolate; overflow: hidden; background: var(--ink); color: var(--paper);
+      min-height: min(680px, 88svh); display: grid; place-items: center; text-align: center;
+      padding: calc(var(--header-h) + 40px) 0 96px;
+    }
+    .hero::before {
+      content: ""; position: absolute; inset: 0; z-index: -1;
+      background:
+        radial-gradient(900px 520px at 78% -10%, rgb(255 255 255 / 0.16), transparent 62%),
+        radial-gradient(700px 480px at 8% 110%, rgb(255 255 255 / 0.09), transparent 60%),
+        linear-gradient(180deg, #161616 0%, #0a0a0a 70%);
+    }
+    .hero::after {
+      content: ""; position: absolute; z-index: -1; width: 760px; height: 760px; right: -220px; bottom: -380px;
+      border-radius: 50%; border: 1px solid rgb(255 255 255 / 0.1);
+      box-shadow: 0 0 0 90px rgb(255 255 255 / 0.015), 0 0 0 180px rgb(255 255 255 / 0.012);
+    }
+    .hero .inner { max-width: 880px; margin: 0 auto; padding: 0 var(--gutter); }
+    .hero .eyebrow { display: block; margin-bottom: 22px; }
+    .hero p.lead {
+      max-width: 560px; margin: 26px auto 34px; font-size: 1.1rem; color: rgb(255 255 255 / 0.72);
+    }
+    .scroll-cue {
+      position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+      display: grid; justify-items: center; gap: 4px; color: var(--on-dark); text-decoration: none;
+      font-size: 11.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* ---- Availability ------------------------------------------------------ */
+    .section { padding: 96px 0; }
+    .section.mist { background: var(--mist); }
+    .section-head {
+      display: flex; align-items: end; justify-content: space-between; gap: 32px; flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .section-head .eyebrow { display: block; margin-bottom: 14px; }
+    .section-head h2 { max-width: 760px; }
+
+    .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter {
+      display: flex; gap: 2px; padding: 4px; border-radius: var(--r-btn); background: rgb(10 10 10 / 0.06);
+      flex-wrap: wrap;
+    }
+    .filter button {
+      border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: var(--r-ctl);
+      font-size: 14.5px; font-weight: 400; transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+    }
+    .filter button:hover { color: var(--ink); }
+    .filter button[aria-pressed="true"] {
+      background: var(--paper); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+    }
+
+    .day { margin-top: 44px; }
+    .day:first-child { margin-top: 0; }
+    .day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .day-head .count { font-size: 12.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--soft); }
+    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+
+    .slot {
+      position: relative; display: flex; flex-direction: column; gap: 22px; text-align: left;
+      min-height: 150px; padding: 22px; border: 0; border-radius: var(--r-card);
+      background: var(--paper); color: var(--ink);
+      box-shadow: 0 0 0 1px var(--line);
+      transition: background-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+    }
+    .slot .top { display: flex; flex-direction: column; gap: 2px; }
+    .slot .time { font-size: 1.3rem; font-weight: 600; letter-spacing: -0.03em; }
+    .slot .who { color: var(--muted); font-size: 15px; }
+    .slot .bottom { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .slot .tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--soft);
+    }
+    .slot .tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.55; }
+    .slot:not(:disabled) .tag { color: var(--ink); }
+    .slot:not(:disabled) .tag::before { background: var(--ok); opacity: 1; }
+    .slot .go {
+      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+      background: var(--mist); color: var(--ink); transition: background-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
+    }
+    .slot:hover:not(:disabled) { background: var(--ink); color: var(--paper); transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgb(0 0 0 / 0.45); }
+    .slot:hover:not(:disabled) .who { color: rgb(255 255 255 / 0.7); }
+    .slot:hover:not(:disabled) .tag { color: var(--paper); }
+    .slot:hover:not(:disabled) .go { background: var(--paper); color: var(--ink); transform: translateX(2px); }
+    .slot:disabled { cursor: not-allowed; background: rgb(10 10 10 / 0.04); box-shadow: none; }
+    .slot:disabled .time { color: var(--soft); }
+    .slot:disabled .who { color: var(--soft); }
+    .slot:disabled .go { visibility: hidden; }
+
+    .empty { color: var(--muted); padding: 40px 0; font-size: 1.1rem; }
+
+    /* ---- Messages ---------------------------------------------------------- */
+    .notice {
+      border-radius: var(--r-card); padding: 18px 22px; margin: 0 0 28px; font-weight: 500;
+    }
+    .notice.error { background: var(--danger-bg); color: var(--danger-ink); box-shadow: 0 0 0 1px var(--danger-line); }
+    #page-error:empty, #booking-notice:empty, #confirmation:empty { display: none; }
+
+    .notice.confirmation {
+      background: var(--ink); color: var(--paper); border-radius: var(--r-panel); padding: 44px;
+      box-shadow: none; margin-bottom: 44px; font-weight: 400;
+      display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px 56px; align-items: start;
+    }
+    .confirmation .eyebrow { grid-column: 1 / -1; color: var(--on-dark); margin: 0 0 -14px; }
+    .confirmation h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
+    .confirmation .intro { color: rgb(255 255 255 / 0.7); margin-top: 14px; max-width: 420px; }
+    .confirmation .actions-row { margin-top: 28px; }
+    .confirmation dl { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; align-self: center; }
+    .confirmation dt, .confirmation dd { padding: 14px 0; border-top: 1px solid rgb(255 255 255 / 0.14); }
+    .confirmation dt { color: var(--on-dark); font-size: 14px; padding-right: 32px; }
+    .confirmation dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 2px 12px 2px 10px; border-radius: 999px;
+      font-size: 13px; font-weight: 600; background: rgb(34 169 79 / 0.18); color: #6fe09a;
+    }
+    .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .badge.cancelled { background: rgb(232 56 61 / 0.2); color: #ff9a9d; }
+
+    /* ---- How it works ------------------------------------------------------ */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .step { background: var(--mist); border-radius: var(--r-card); padding: 30px; min-height: 220px; display: flex; flex-direction: column; gap: 10px; }
+    .step .num { font-size: 12.5px; font-weight: 600; letter-spacing: 1px; color: var(--soft); padding-bottom: 56px; }
+    .step p { color: var(--muted); }
+
+    /* ---- Footer ------------------------------------------------------------ */
+    .site-footer { background: var(--ink); color: var(--paper); padding: 64px 0 40px; }
+    .site-footer .row { display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; align-items: end; }
+    .site-footer .brand-big { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+    .site-footer p { color: var(--on-dark); max-width: 380px; }
+    .site-footer .fine { max-width: none; margin-top: 48px; padding-top: 22px; border-top: 1px solid rgb(255 255 255 / 0.14); font-size: 13.5px; }
+
+    /* ---- Dialog ------------------------------------------------------------ */
+    dialog {
+      width: min(480px, calc(100vw - 24px)); border: 0; border-radius: var(--r-panel);
+      padding: 34px; background: var(--paper); color: var(--ink);
+      box-shadow: 0 40px 90px -30px rgb(0 0 0 / 0.6);
+    }
+    dialog::backdrop { background: rgb(10 10 10 / 0.62); backdrop-filter: blur(4px); }
+    dialog .eyebrow { display: block; margin-bottom: 10px; }
+    dialog h2 { font-size: 2rem; }
+    dialog .summary { color: var(--muted); margin: 8px 0 22px; }
+    .row { margin-bottom: 16px; }
+    label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    input {
+      width: 100%; height: 48px; padding: 0 14px; font: inherit; color: var(--ink); background: var(--paper);
+      border: 1px solid rgb(10 10 10 / 0.2); border-radius: var(--r-ctl);
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+    input:hover { border-color: rgb(10 10 10 / 0.45); }
+    input:focus-visible { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgb(10 10 10 / 0.12); }
+    .form-error { margin: 0 0 16px; padding: 12px 14px; border-radius: var(--r-ctl); background: var(--danger-bg); color: var(--danger-ink); font-weight: 500; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* ---- Small screens ----------------------------------------------------- */
+    @media (max-width: 860px) {
+      :root { --gutter: 20px; --header-h: 4.5rem; }
+      .nav { display: none; }
+      .section { padding: 64px 0; }
+      .section-head { margin-bottom: 28px; }
+      .steps { grid-template-columns: 1fr; }
+      .step { min-height: 0; }
+      .step .num { padding-bottom: 20px; }
+      .notice.confirmation { grid-template-columns: 1fr; padding: 28px; gap: 22px; }
+      .confirmation .eyebrow { margin-bottom: 0; }
+      .hero { padding-bottom: 88px; }
+    }
+    @media (max-width: 440px) {
+      .brand span { display: none; }
+      .slots { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .slot { padding: 16px; min-height: 140px; gap: 14px; }
+      .slot .time { font-size: 1.05rem; }
+      .slot .tag { font-size: 11px; letter-spacing: 0.6px; }
+      .slot .go { display: none; }
+      dialog { padding: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Book an appointment</h1>
-    <p class="lead">Choose a time that suits you. Times are shown in your local time zone.</p>
+  <a class="skip" href="#slots">Skip to available times</a>
 
-    <div id="key-gate" class="notice" hidden>
-      <label for="api-key">API key</label>
-      <input id="api-key" type="password" autocomplete="off" />
-      <div class="actions"><button class="btn" id="save-key" type="button">Use this key</button></div>
+  <header class="site-header" id="site-header">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="Back to the top">
+        <strong>Clinic</strong>
+        <span>Appointments</span>
+      </a>
+      <nav class="nav" aria-label="Page sections">
+        <a href="#top" data-section="top" aria-current="true">Home</a>
+        <a href="#slots" data-section="slots">Availability</a>
+        <a href="#how" data-section="how">How it works</a>
+      </nav>
+      <a class="btn btn-cta" href="#slots">Book an appointment</a>
     </div>
+  </header>
 
-    <div id="confirmation" tabindex="-1" aria-live="polite"></div>
-    <div id="page-error" role="alert"></div>
-    <div id="booking-notice" role="alert"></div>
-
-    <div class="toolbar">
-      <div class="field">
-        <label for="provider">Doctor</label>
-        <select id="provider"><option value="">Anyone</option></select>
+  <main id="top">
+    <section class="hero on-dark" id="hero">
+      <div class="inner">
+        <span class="eyebrow">Online booking</span>
+        <h1>Book your appointment in <em>minutes.</em></h1>
+        <p class="lead">Choose a doctor and a time that suits you. You will see your confirmation straight away.</p>
+        <a class="btn btn-hero" href="#slots">
+          See available times
+          <span class="chip-arrow" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
       </div>
-      <button class="btn secondary" id="refresh" type="button">Refresh</button>
-    </div>
+      <a class="scroll-cue" href="#slots" aria-label="Scroll to available times">
+        Scroll
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </section>
 
-    <p id="status" class="sr-only" aria-live="polite"></p>
-    <div id="slots"></div>
+    <section class="section mist" id="slots">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Availability</span>
+            <h2>Choose a time that suits you.</h2>
+          </div>
+          <div class="toolbar">
+            <div class="filter" id="provider" role="group" aria-label="Filter by doctor"></div>
+            <button class="btn secondary" id="refresh" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div id="key-gate" class="notice" hidden>
+          <label for="api-key">API key</label>
+          <input id="api-key" type="password" autocomplete="off" />
+          <div class="actions"><button class="btn" id="save-key" type="button">Use this key</button></div>
+        </div>
+
+        <div id="confirmation" tabindex="-1" aria-live="polite"></div>
+        <div id="page-error" role="alert"></div>
+        <div id="booking-notice" role="alert"></div>
+
+        <p id="status" class="sr-only" aria-live="polite"></p>
+        <div id="slots-list"></div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">How it works</span>
+            <h2>A simple, three step process.</h2>
+          </div>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="num">01</span>
+            <h3>Pick a time</h3>
+            <p>Browse the open times and filter by doctor if you have a preference.</p>
+          </div>
+          <div class="step">
+            <span class="num">02</span>
+            <h3>Add your details</h3>
+            <p>Enter your name and email. The form checks them before anything is sent.</p>
+          </div>
+          <div class="step">
+            <span class="num">03</span>
+            <h3>See your confirmation</h3>
+            <p>You get a booking ID straight away. Keep it in case you need to ask about your visit.</p>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="row">
+        <div class="brand-big">Clinic</div>
+        <p>Times are shown in your local time zone. If you need to ask about a booking, quote your booking ID.</p>
+      </div>
+      <p class="fine">Appointments are held for you as soon as your booking is confirmed.</p>
+    </div>
+  </footer>
 
   <dialog id="book-dialog" aria-labelledby="dialog-title">
     <form id="book-form" novalidate>
+      <span class="eyebrow">Your details</span>
       <h2 id="dialog-title">Confirm your booking</h2>
       <p class="summary" id="dialog-summary"></p>
       <p class="form-error" id="form-error" role="alert" hidden></p>
@@ -169,8 +464,11 @@
     let apiKey = null;
     let allSlots = [];
     let selectedSlot = null;
+    let currentProvider = "";
     let lastAttempt = null; // { fingerprint, key } so a retry reuses the same Idempotency-Key
     let countdownTimer = null;
+
+    const ARROW = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // ---- helpers --------------------------------------------------------------
     function el(tag, props = {}, ...children) {
@@ -182,6 +480,12 @@
       }
       node.append(...children);
       return node;
+    }
+
+    function icon(markup, className) {
+      const span = el("span", { class: className, "aria-hidden": "true" });
+      span.innerHTML = markup;
+      return span;
     }
 
     const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -238,21 +542,26 @@
     }
 
     function renderProviders() {
-      const select = $("provider");
-      const current = select.value;
       const providers = [...new Set(allSlots.map((s) => s.provider))].sort();
-      select.replaceChildren(
-        el("option", { value: "" }, "Anyone"),
-        ...providers.map((p) => el("option", { value: p }, p)),
-      );
-      select.value = providers.includes(current) ? current : "";
+      if (currentProvider && !providers.includes(currentProvider)) currentProvider = "";
+      const make = (value, label) =>
+        el("button", {
+          type: "button",
+          "data-provider": value,
+          "aria-pressed": String(value === currentProvider),
+          onclick: () => {
+            currentProvider = value;
+            renderProviders();
+            renderSlots();
+          },
+        }, label);
+      $("provider").replaceChildren(make("", "All doctors"), ...providers.map((p) => make(p, p)));
     }
 
     function renderSlots() {
-      const provider = $("provider").value;
       const now = Date.now();
-      const visible = allSlots.filter((s) => !provider || s.provider === provider);
-      const container = $("slots");
+      const visible = allSlots.filter((s) => !currentProvider || s.provider === currentProvider);
+      const container = $("slots-list");
 
       if (visible.length === 0) {
         container.replaceChildren(el("p", { class: "empty" }, "There are no appointment times to show."));
@@ -268,6 +577,7 @@
 
       const sections = [];
       for (const slots of days.values()) {
+        const open = slots.filter((s) => s.available && Date.parse(s.start) > now).length;
         const buttons = slots.map((slot) => {
           const started = Date.parse(slot.start) <= now;
           const unavailable = !slot.available || started;
@@ -280,20 +590,25 @@
               ...(unavailable ? { disabled: "" } : {}),
               onclick: () => openDialog(slot),
             },
-            el("span", { class: "time" }, timeRange(slot)),
-            el("span", { class: "who" }, slot.provider),
-            el("span", { class: "tag" }, tag),
+            el("span", { class: "top" },
+              el("span", { class: "time" }, timeRange(slot)),
+              el("span", { class: "who" }, slot.provider)),
+            el("span", { class: "bottom" },
+              el("span", { class: "tag" }, tag),
+              icon(ARROW, "go")),
           );
         });
         sections.push(
           el("section", { class: "day" },
-            el("h3", {}, dayFormat.format(new Date(slots[0].start))),
+            el("div", { class: "day-head" },
+              el("h3", {}, dayFormat.format(new Date(slots[0].start))),
+              el("span", { class: "count" }, `${open} open`)),
             el("div", { class: "slots" }, ...buttons)),
         );
       }
       container.replaceChildren(...sections);
-      const open = visible.filter((s) => s.available && Date.parse(s.start) > now).length;
-      $("status").textContent = `${open} appointment times available.`;
+      const total = visible.filter((s) => s.available && Date.parse(s.start) > now).length;
+      $("status").textContent = `${total} appointment times available.`;
     }
 
     // ---- booking dialog -------------------------------------------------------
@@ -403,13 +718,17 @@
       if (slot) {
         rows.push(["Doctor", slot.provider], ["When", fullFormat.format(new Date(slot.start))]);
       }
+      const confirmed = booking.status === "confirmed";
       const box = $("confirmation");
       box.replaceChildren(
         el("div", { class: "notice confirmation" },
-          el("h2", {}, booking.status === "confirmed" ? "You're booked" : "This booking was cancelled"),
-          el("p", {}, "Keep your booking ID in case you need to ask about this appointment."),
-          el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
-          el("button", { class: "btn secondary", type: "button", onclick: dismissConfirmation }, "Book another time")),
+          el("span", { class: "eyebrow" }, confirmed ? "Booking confirmed" : "Booking cancelled"),
+          el("div", {},
+            el("h2", {}, confirmed ? "You're booked" : "This booking was cancelled"),
+            el("p", { class: "intro" }, "Keep your booking ID in case you need to ask about this appointment."),
+            el("div", { class: "actions-row" },
+              el("button", { class: "btn light", type: "button", onclick: dismissConfirmation }, "Book another time"))),
+          el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]))),
       );
       box.focus();
       box.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -430,9 +749,26 @@
       }
     }
 
+    // ---- header: light on scroll, and which section is current ------------------
+    function updateHeader() {
+      const header = $("site-header");
+      const hero = $("hero");
+      header.classList.toggle("on-light", window.scrollY > hero.offsetHeight - 90);
+
+      const marks = ["top", "slots", "how"].map((id) => ({ id, top: id === "top" ? 0 : $(id).getBoundingClientRect().top + window.scrollY }));
+      const here = window.scrollY + 140;
+      let current = "top";
+      for (const m of marks) if (here >= m.top) current = m.id;
+      document.querySelectorAll(".nav a").forEach((a) => {
+        a.setAttribute("aria-current", String(a.dataset.section === current));
+      });
+    }
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    window.addEventListener("resize", updateHeader);
+
     // ---- start ----------------------------------------------------------------
     async function start() {
-      $("provider").addEventListener("change", renderSlots);
+      updateHeader();
       $("refresh").addEventListener("click", loadSlots);
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden && !$("book-dialog").open) loadSlots();
