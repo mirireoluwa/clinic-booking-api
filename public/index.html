@@ -247,23 +247,32 @@
       border-radius: var(--r-card); padding: 18px 22px; margin: 0 0 28px; font-weight: 500;
     }
     .notice.error { background: var(--danger-bg); color: var(--danger-ink); box-shadow: 0 0 0 1px var(--danger-line); }
-    #page-error:empty, #booking-notice:empty, #confirmation:empty { display: none; }
+    #page-error:empty, #booking-notice:empty { display: none; }
 
-    .notice.confirmation {
-      background: var(--ink); color: var(--paper); border-radius: var(--r-panel); padding: 44px;
-      box-shadow: none; margin-bottom: 44px; font-weight: 400;
-      display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px 56px; align-items: start;
-    }
-    .confirmation .eyebrow { grid-column: 1 / -1; color: var(--on-dark); margin: 0 0 -14px; }
-    .confirmation h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
-    .confirmation .intro { color: rgb(255 255 255 / 0.7); margin-top: 14px; max-width: 420px; }
-    .confirmation .actions-row { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; }
     .btn.secondary-dark { background: transparent; color: var(--paper); border-color: rgb(255 255 255 / 0.35); }
     .btn.secondary-dark:hover:not(:disabled) { background: rgb(255 255 255 / 0.1); border-color: var(--paper); }
-    .confirmation dl { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; align-self: center; }
-    .confirmation dt, .confirmation dd { padding: 14px 0; border-top: 1px solid rgb(255 255 255 / 0.14); }
-    .confirmation dt { color: var(--on-dark); font-size: 14px; padding-right: 32px; }
-    .confirmation dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+
+    /* ---- Booking side panel ------------------------------------------------ */
+    dialog.side-panel {
+      position: fixed; inset: 0 0 0 auto; margin: 0; width: min(460px, 100vw); max-width: 100vw;
+      height: 100dvh; max-height: none; border-radius: var(--r-panel) 0 0 var(--r-panel);
+      background: var(--ink); color: var(--paper); padding: 36px 32px; overflow-y: auto;
+      box-shadow: -30px 0 80px -30px rgb(0 0 0 / 0.6);
+      animation: panel-in 0.32s var(--ease);
+    }
+    dialog.side-panel.leaving { animation: panel-out 0.22s var(--ease) forwards; }
+    @keyframes panel-in { from { transform: translateX(100%); } to { transform: none; } }
+    @keyframes panel-out { from { transform: none; } to { transform: translateX(100%); } }
+    .side-panel .eyebrow { color: var(--on-dark); }
+    .side-panel h2 { font-size: clamp(2rem, 4vw, 2.6rem); }
+    .side-panel .intro { color: rgb(255 255 255 / 0.7); margin: 14px 0 0; }
+    .side-panel .actions-row { margin: 28px 0 32px; display: flex; flex-wrap: wrap; gap: 12px; }
+    .side-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; }
+    .side-panel dt, .side-panel dd { padding: 14px 0; border-top: 1px solid rgb(255 255 255 / 0.14); }
+    .side-panel dt { color: var(--on-dark); font-size: 14px; padding-right: 32px; }
+    .side-panel dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+    .side-panel .panel-error { background: var(--danger-bg); color: var(--danger-ink); border-radius: var(--r-card); padding: 12px 16px; margin-top: 18px; font-weight: 500; }
+    .slot.mine { box-shadow: inset 0 0 0 2px var(--ink); }
     .badge {
       display: inline-flex; align-items: center; gap: 8px; padding: 2px 12px 2px 10px; border-radius: 999px;
       font-size: 13px; font-weight: 600; background: rgb(34 169 79 / 0.18); color: #6fe09a;
@@ -315,8 +324,6 @@
       .steps { grid-template-columns: 1fr; }
       .step { min-height: 0; }
       .step .num { padding-bottom: 20px; }
-      .notice.confirmation { grid-template-columns: 1fr; padding: 28px; gap: 22px; }
-      .confirmation .eyebrow { margin-bottom: 0; }
       .hero { padding-bottom: 88px; }
     }
     @media (max-width: 440px) {
@@ -327,6 +334,7 @@
       .slot .tag { font-size: 11px; letter-spacing: 0.6px; }
       .slot .go { display: none; }
       dialog { padding: 24px; }
+      dialog.side-panel { padding: 28px 22px; border-radius: 0; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -390,7 +398,6 @@
           <div class="actions"><button class="btn" id="save-key" type="button">Use this key</button></div>
         </div>
 
-        <div id="confirmation" tabindex="-1" aria-live="polite"></div>
         <div id="page-error" role="alert"></div>
         <div id="booking-notice" role="alert"></div>
 
@@ -437,6 +444,8 @@
       <p class="fine">Appointments are held for you as soon as your booking is confirmed.</p>
     </div>
   </footer>
+
+  <dialog id="booking-panel" class="side-panel" aria-labelledby="panel-title"></dialog>
 
   <dialog id="book-dialog" aria-labelledby="dialog-title">
     <form id="book-form" novalidate>
@@ -582,15 +591,16 @@
         const open = slots.filter((s) => s.available && Date.parse(s.start) > now).length;
         const buttons = slots.map((slot) => {
           const started = Date.parse(slot.start) <= now;
-          const unavailable = !slot.available || started;
-          const tag = started ? "Already started" : !slot.available ? "Booked" : "Available";
+          const myBooking = !slot.available ? myBookings()[slot.id] : null;
+          const unavailable = !myBooking && (!slot.available || started);
+          const tag = myBooking ? "Your booking" : started ? "Already started" : !slot.available ? "Booked" : "Available";
           return el(
             "button",
             {
-              class: "slot",
+              class: myBooking ? "slot mine" : "slot",
               type: "button",
               ...(unavailable ? { disabled: "" } : {}),
-              onclick: () => openDialog(slot),
+              onclick: () => (myBooking ? openBookingPanel(myBooking, slot) : openDialog(slot)),
             },
             el("span", { class: "top" },
               el("span", { class: "time" }, timeRange(slot)),
@@ -686,8 +696,8 @@
         lastAttempt = null;
         $("book-dialog").close();
         $("book-form").reset();
-        history.replaceState(null, "", `#booking=${encodeURIComponent(res.data.id)}`);
-        showConfirmation(res.data, selectedSlot);
+        rememberBooking(selectedSlot.id, res.data.id);
+        showBookingPanel(res.data, selectedSlot);
         loadSlots();
         return;
       }
@@ -709,32 +719,97 @@
 
     $("cancel-dialog").addEventListener("click", () => $("book-dialog").close());
 
-    // ---- confirmation ---------------------------------------------------------
-    function showConfirmation(booking, slot) {
+    // ---- my bookings (kept in this browser only) --------------------------------
+    // The page's key can read and cancel a booking by its id but cannot list people's bookings,
+    // so the ids of bookings made here are remembered here.
+    const STORE = "clinic.myBookings";
+    function myBookings() {
+      try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; }
+    }
+    function saveBookings(map) {
+      try { localStorage.setItem(STORE, JSON.stringify(map)); } catch { /* storage unavailable */ }
+    }
+    function rememberBooking(slotId, bookingId) {
+      saveBookings({ ...myBookings(), [slotId]: bookingId });
+    }
+    function forgetBooking(slotId) {
+      const map = myBookings();
+      delete map[slotId];
+      saveBookings(map);
+    }
+
+    // ---- booking side panel ---------------------------------------------------
+    const panel = () => $("booking-panel");
+
+    function showBookingPanel(booking, slot, errorMessage) {
+      const confirmed = booking.status === "confirmed";
       const rows = [
         ["Status", el("span", { class: `badge ${booking.status}` }, booking.status)],
         ["Booking ID", booking.id],
         ["Name", booking.name],
         ["Email", booking.email],
       ];
-      if (slot) {
-        rows.push(["Doctor", slot.provider], ["When", fullFormat.format(new Date(slot.start))]);
-      }
-      const confirmed = booking.status === "confirmed";
-      const box = $("confirmation");
-      box.replaceChildren(
-        el("div", { class: "notice confirmation" },
-          el("span", { class: "eyebrow" }, confirmed ? "Booking confirmed" : "Booking cancelled"),
-          el("div", {},
-            el("h2", {}, confirmed ? "You're booked" : "This booking was cancelled"),
-            el("p", { class: "intro" }, "Keep your booking ID in case you need to ask about this appointment."),
-            el("div", { class: "actions-row" },
-              el("button", { class: "btn light", type: "button", onclick: dismissConfirmation }, "Book another time"),
-              ...(confirmed ? [cancelButton(booking, slot)] : []))),
-          el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]))),
+      if (slot) rows.push(["Doctor", slot.provider], ["When", fullFormat.format(new Date(slot.start))]);
+
+      panel().classList.remove("leaving");
+      panel().replaceChildren(
+        el("span", { class: "eyebrow" }, confirmed ? "Booking confirmed" : "Booking cancelled"),
+        el("h2", { id: "panel-title" }, confirmed ? "You're booked" : "This booking was cancelled"),
+        el("p", { class: "intro" }, confirmed
+          ? "Keep your booking ID in case you need to ask about this appointment."
+          : "That time is free for other people to book."),
+        ...(errorMessage ? [el("div", { class: "panel-error", role: "alert" }, errorMessage)] : []),
+        el("div", { class: "actions-row" },
+          el("button", { class: "btn light", type: "button", onclick: closeBookingPanel }, "Close"),
+          ...(confirmed ? [cancelButton(booking, slot)] : [])),
+        el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
       );
-      box.focus();
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", `#booking=${encodeURIComponent(booking.id)}`);
+      if (!panel().open) panel().showModal();
+    }
+
+    function closeBookingPanel() {
+      if (!panel().open) return;
+      panel().classList.add("leaving");
+      setTimeout(() => panel().open && panel().close(), 200);
+    }
+
+    panel().addEventListener("close", () => {
+      panel().classList.remove("leaving");
+      history.replaceState(null, "", location.pathname);
+    });
+    panel().addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeBookingPanel();
+    });
+    // A click on the dimmed area outside the panel closes it.
+    panel().addEventListener("click", (event) => {
+      const box = panel().getBoundingClientRect();
+      const outside = event.clientX < box.left || event.clientX > box.right ||
+        event.clientY < box.top || event.clientY > box.bottom;
+      if (outside) closeBookingPanel();
+    });
+
+    // Clicking one of my own booked slots: fetch the booking fresh, then show it.
+    async function openBookingPanel(bookingId, slot) {
+      showNotice("");
+      let res;
+      try {
+        res = await api("GET", `/bookings/${encodeURIComponent(bookingId)}`);
+      } catch {
+        return showNotice("Could not reach the server. Please try again.");
+      }
+      if (res.status === 404) {
+        forgetBooking(slot.id);
+        showNotice("We could not find that booking any more.");
+        return loadSlots();
+      }
+      if (res.status !== 200) return showNotice("Could not load that booking. Please try again.");
+      if (res.data.status === "cancelled") {
+        forgetBooking(slot.id);
+        loadSlots();
+      }
+      showBookingPanel(res.data, slot);
     }
 
     // Two clicks: the first asks "are you sure", the second cancels. No browser popups.
@@ -751,33 +826,33 @@
         clearTimeout(timer);
         btn.disabled = true;
         btn.textContent = "Cancelling...";
-        const res = await api("DELETE", `/bookings/${booking.id}`);
+        let res;
+        try {
+          res = await api("DELETE", `/bookings/${encodeURIComponent(booking.id)}`);
+        } catch {
+          res = { status: 0 };
+        }
         if (res.status === 200 || res.status === 409) {
-          const fresh = res.status === 200 ? res.data : { ...booking, status: "cancelled" };
-          showConfirmation(fresh, slot);
+          forgetBooking(booking.slot_id);
+          showBookingPanel(res.status === 200 ? res.data : { ...booking, status: "cancelled" }, slot);
           await loadSlots();
         } else {
-          btn.disabled = false;
-          armed = false;
-          btn.textContent = "Cancel booking";
-          showNotice("Sorry, we could not cancel that booking. Please try again.");
+          showBookingPanel(booking, slot, "Sorry, we could not cancel that booking. Please try again.");
         }
       });
       return btn;
     }
 
-    function dismissConfirmation() {
-      $("confirmation").replaceChildren();
-      history.replaceState(null, "", location.pathname);
-    }
-
-    // A reload of #booking=<id> shows the confirmation again, using GET /bookings/{id}.
+    // A reload of #booking=<id> opens the panel again, using GET /bookings/{id}.
     async function restoreConfirmation() {
       const match = location.hash.match(/^#booking=(.+)$/);
       if (!match) return;
       const res = await api("GET", `/bookings/${match[1]}`);
       if (res.status === 200) {
-        showConfirmation(res.data, allSlots.find((s) => s.id === res.data.slot_id));
+        const slot = allSlots.find((x) => x.id === res.data.slot_id);
+        if (res.data.status === "confirmed" && slot) rememberBooking(slot.id, res.data.id);
+        showBookingPanel(res.data, slot);
+        renderSlots();
       }
     }
 

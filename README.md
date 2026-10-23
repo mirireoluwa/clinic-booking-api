@@ -2,6 +2,9 @@
 
 An API that lets patients book appointment slots, plus a small web page that uses it. Built for the Koya Cohort 4 assessment, Task 1. It covers all five levels.
 
+- **API base URL:** add your deployed URL here
+- **Web page:** the same URL, at `/`
+
 - **API base URL:** https://clinic-booking-api-46kz.onrender.com
 - **Web page:** https://clinic-booking-api-46kz.onrender.com/
 
@@ -72,8 +75,9 @@ The page lists open slots grouped by day, lets you filter by doctor, and books a
 - Each booking attempt sends an `Idempotency-Key`. If the network drops or someone double clicks, the retry reuses the same key, so nobody is booked twice.
 - If someone else takes your slot first, you get a clear message and a refreshed list.
 - If you hit the rate limit, the button counts down the `Retry-After` seconds.
-- The confirmation survives a reload, because the booking id is kept in the URL and loaded with `GET /bookings/{id}`.
-- The confirmation has a Cancel booking button (two clicks, to avoid accidents). It calls `DELETE /bookings/{id}`, and the slot is free again straight away.
+- The side panel survives a reload, because the booking id is kept in the URL and loaded with `GET /bookings/{id}`.
+- After booking, the details open in a side panel on the right, with a Cancel booking button (two clicks, to avoid accidents). It calls `DELETE /bookings/{id}`, and the slot is free again straight away.
+- A slot you booked from this browser shows as "Your booking" and stays clickable, so you can reopen the panel and cancel later. The page can only look bookings up by id, so it remembers the ids of your bookings in this browser. Slots booked by anyone else stay greyed out.
 - The page uses a second key, `WEB_KEY`, which can list slots, book, read a booking and cancel one by its id, but cannot reset or list a person's bookings. It has to be visible to the browser, so I limited what it can do, and a booking id is a random UUID that only the person who booked sees. The full `API_KEY` is never sent to the page.
 
 ## Tests
