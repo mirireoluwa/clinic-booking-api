@@ -96,9 +96,9 @@ describe("Level 2: API key", () => {
     assert.equal(res.status, 401);
   });
 
-  test("the web page key cannot reset or list bookings, but can cancel by id", async () => {
+  test("the web page key cannot reset, but can list a person's bookings and cancel by id", async () => {
     assert.equal((await call("POST", "/reset", { body: { slots: [] }, key: WEB_KEY })).status, 403);
-    assert.equal((await call("GET", "/bookings?email=a@b.co", { key: WEB_KEY })).status, 403);
+    assert.equal((await call("GET", "/bookings?email=a@b.co", { key: WEB_KEY })).status, 200);
     assert.equal((await call("DELETE", "/bookings/x", { key: WEB_KEY })).status, 404);
     assert.equal((await call("GET", "/slots", { key: WEB_KEY })).status, 200);
   });

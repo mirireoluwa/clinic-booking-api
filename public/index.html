@@ -194,6 +194,7 @@
       display: flex; gap: 2px; padding: 4px; border-radius: var(--r-btn); background: rgb(10 10 10 / 0.06);
       flex-wrap: wrap;
     }
+    .filter[hidden] { display: none; }
     .filter button {
       border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: var(--r-ctl);
       font-size: 14.5px; font-weight: 400; transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
@@ -273,6 +274,17 @@
     .side-panel dd { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
     .side-panel .panel-error { background: var(--danger-bg); color: var(--danger-ink); border-radius: var(--r-card); padding: 12px 16px; margin-top: 18px; font-weight: 500; }
     .slot.mine { box-shadow: inset 0 0 0 2px var(--ink); }
+    .slot.cancelled:not(:disabled) { background: rgb(10 10 10 / 0.04); }
+    .slot.cancelled .time, .slot.cancelled .who { color: var(--soft); }
+    .slot.cancelled:not(:disabled) .tag::before { background: var(--soft); }
+    .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; color: var(--muted); }
+    .mine-head strong { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+    .linklike { border: 0; background: none; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+    .find-form { max-width: 460px; }
+    .find-form p { color: var(--muted); margin: 0 0 18px; }
+    .find-form .row { display: flex; gap: 10px; }
+    .find-form input { flex: 1; min-width: 0; }
+    .find-form .field-error { color: var(--danger-ink); margin-top: 10px; font-weight: 500; }
     .badge {
       display: inline-flex; align-items: center; gap: 8px; padding: 2px 12px 2px 10px; border-radius: 999px;
       font-size: 13px; font-weight: 600; background: rgb(34 169 79 / 0.18); color: #6fe09a;
@@ -387,6 +399,10 @@
             <h2>Choose a time that suits you.</h2>
           </div>
           <div class="toolbar">
+            <div class="filter" id="view" role="group" aria-label="What to show">
+              <button type="button" data-view="slots" aria-pressed="true">All times</button>
+              <button type="button" data-view="mine" aria-pressed="false">My bookings</button>
+            </div>
             <div class="filter" id="provider" role="group" aria-label="Filter by doctor"></div>
             <button class="btn secondary" id="refresh" type="button">Refresh</button>
           </div>
@@ -549,7 +565,114 @@
       }
       allSlots = res.data.slots;
       renderProviders();
-      renderSlots();
+      renderCurrent();
+    }
+
+    // ---- my bookings view -----------------------------------------------------
+    const EMAIL_KEY = "clinic.email";
+    let view = "slots";
+    const storedEmail = () => { try { return localStorage.getItem(EMAIL_KEY) || ""; } catch { return ""; } };
+    const storeEmail = (email) => { try { localStorage.setItem(EMAIL_KEY, email); } catch { /* storage unavailable */ } };
+    const clearEmail = () => { try { localStorage.removeItem(EMAIL_KEY); } catch { /* storage unavailable */ } };
+
+    function renderCurrent() {
+      if (view === "mine") loadMine();
+      else renderSlots();
+    }
+
+    function setView(next) {
+      view = next;
+      document.querySelectorAll("#view button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+      $("provider").hidden = view === "mine";
+      renderCurrent();
+    }
+
+    function renderFindForm(errorMessage) {
+      const input = el("input", { id: "find-email", type: "email", autocomplete: "email", placeholder: "you@example.com", "aria-label": "Email you booked with" });
+      input.value = storedEmail();
+      const error = el("div", { class: "field-error", role: "alert" }, errorMessage || "");
+      error.hidden = !errorMessage;
+      $("slots-list").replaceChildren(
+        el("form", {
+          class: "find-form",
+          novalidate: "",
+          onsubmit: (event) => {
+            event.preventDefault();
+            const email = input.value.trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              error.textContent = "Please enter a valid email address.";
+              error.hidden = false;
+              return input.focus();
+            }
+            storeEmail(email.toLowerCase());
+            loadMine();
+          },
+        },
+          el("p", {}, "Enter the email you booked with to see your appointments."),
+          el("div", { class: "row" }, input, el("button", { class: "btn", type: "submit" }, "Show my bookings")),
+          error),
+      );
+      input.focus();
+    }
+
+    async function fetchMyBookings(email) {
+      const found = [];
+      let cursor = "";
+      for (let page = 0; page < 10; page++) {
+        const query = `/bookings?email=${encodeURIComponent(email)}&limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+        const res = await api("GET", query);
+        if (res.status !== 200) throw new Error(res.data?.error || "failed");
+        found.push(...res.data.bookings);
+        if (!res.data.next_cursor) break;
+        cursor = res.data.next_cursor;
+      }
+      return found;
+    }
+
+    async function loadMine() {
+      const email = storedEmail();
+      if (!email) return renderFindForm();
+      $("slots-list").replaceChildren(el("p", { class: "empty" }, "Loading your bookings..."));
+      let bookings;
+      try {
+        bookings = await fetchMyBookings(email);
+      } catch {
+        if (view !== "mine") return;
+        return $("slots-list").replaceChildren(
+          el("p", { class: "empty" }, "Could not load your bookings. Please try Refresh."));
+      }
+      if (view !== "mine") return;
+
+      const slotOf = (b) => allSlots.find((x) => x.id === b.slot_id);
+      const startOf = (b) => Date.parse(slotOf(b)?.start || "") || 0;
+      bookings.sort((a, b) =>
+        (a.status === "cancelled") - (b.status === "cancelled") || startOf(a) - startOf(b));
+
+      const head = el("div", { class: "mine-head" },
+        el("span", {}, "Bookings for ", el("strong", {}, email)),
+        el("button", { class: "linklike", type: "button", onclick: () => { clearEmail(); renderFindForm(); } }, "Use a different email"));
+
+      if (bookings.length === 0) {
+        $("slots-list").replaceChildren(head, el("p", { class: "empty" }, "No bookings found for this email."));
+        return;
+      }
+      $("slots-list").replaceChildren(head,
+        el("div", { class: "slots" }, ...bookings.map((b) => {
+          const slot = slotOf(b);
+          const cancelled = b.status === "cancelled";
+          return el("button", {
+            class: cancelled ? "slot cancelled" : "slot mine",
+            type: "button",
+            onclick: () => { showNotice(""); showBookingPanel(b, slot); },
+          },
+            el("span", { class: "top" },
+              el("span", { class: "time" }, slot ? timeRange(slot) : "Time no longer listed"),
+              el("span", { class: "who" }, slot ? `${dayFormat.format(new Date(slot.start))}, ${slot.provider}` : "")),
+            el("span", { class: "bottom" },
+              el("span", { class: "tag" }, cancelled ? "Cancelled" : "Confirmed"),
+              icon(ARROW, "go")));
+        })));
+      $("status").textContent = `${bookings.length} bookings for ${email}.`;
     }
 
     function renderProviders() {
@@ -697,6 +820,7 @@
         $("book-dialog").close();
         $("book-form").reset();
         rememberBooking(selectedSlot.id, res.data.id);
+        storeEmail(res.data.email);
         showBookingPanel(res.data, selectedSlot);
         loadSlots();
         return;
@@ -852,7 +976,7 @@
         const slot = allSlots.find((x) => x.id === res.data.slot_id);
         if (res.data.status === "confirmed" && slot) rememberBooking(slot.id, res.data.id);
         showBookingPanel(res.data, slot);
-        renderSlots();
+        renderCurrent();
       }
     }
 
@@ -877,6 +1001,7 @@
     async function start() {
       updateHeader();
       $("refresh").addEventListener("click", loadSlots);
+      document.querySelectorAll("#view button").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden && !$("book-dialog").open) loadSlots();
       });
